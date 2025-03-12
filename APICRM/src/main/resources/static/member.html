@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>会員管理システム</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css">
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">会員管理システム</h1>
+        <h2 class="mb-4">新規登録</h2>
+        <div id="add" class="ms-4">
+            氏名：<input type="text" name="name">
+            年齢：<input type="number" name="age">
+            住所：<input type="text" name="address">
+            会員種別：
+            <select name="type">
+                <option value="1">通常会員</option>
+                <option value="2">プレミアム会員</option>
+            </select>
+            <button class="btn btn-primary">登録</button>
+        </div>
+        <h2 class="my-4">会員一覧</h2>
+        <table id="members" class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>氏名</th>
+                    <th>年齢</th>
+                    <th>住所</th>
+                    <th>会員種別</th>
+                    <th>登録日</th>
+                    <th colspan="2">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div><!-- /.container -->
+    <!-- テーブル行のテンプレート -->
+    <template id="row">
+        <tr class="align-middle">
+            <td class="member_id"><!-- 会員ID --></td>
+            <td><input type="text" name="name"></td>
+            <td><input type="number" name="age"></td>
+            <td><input type="text" name="address"></td>
+            <td>
+                <select name="type">
+                    <option value="1">通常会員</option>
+                    <option value="2">プレミアム会員</option>
+                </select>
+            </td>
+            <td class="member_created"><!-- 登録日 --></td>
+            <td>
+                <button class="btn btn-warning update_member">更新</button>
+            </td>
+            <td>
+                <button class="btn btn-danger delete_member">削除</button>
+            </td>
+        </tr>
+    </template>
+    <!-- Bootstrap & Axios 読み込み -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@1.2.1/dist/axios.min.js">
+    </script>
+    <script>
+        // API のエンドポイント
+        const API_URL = 'http://localhost:8080/api/members';
+        // 日付を「〇年〇月〇日」にフォーマットする関数
+        const formatDate = (date) => {
+            const d = new Date(date);
+            return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+        };
+        // テーブルに行を追加する関数
+        const createRow = (member) => {
+            const template = document.getElementById('row');
+            const fragment = document.importNode(template.content, true);
+            const row = fragment.querySelector('tr');
+            row.setAttribute('id', `mid${member.id}`);
+            row.querySelector('.member_id').textContent = member.id;
+            row.querySelector('[name="name"]').value = member.name;
+            row.querySelector('[name="age"]').value = member.age;
+            row.querySelector('[name="address"]').value = member.address;
+            row.querySelector('[name="type"]').value = member.typeId;
+            row.querySelector('.member_created').textContent =
+                formatDate(member.created);
+            row.querySelector('.update_member').setAttribute('data-id',
+                member.id);
+            row.querySelector('.delete_member').setAttribute('data-id',
+                member.id);
+            //更新、削除ボタンに押下時のイベントハンドラを付与
+            row.querySelector('.update_member').addEventListener('click',
+                updateMember);
+            row.querySelector('.delete_member').addEventListener('click',
+                deleteMember);
+            document.querySelector('#members tbody').prepend(row);
+        }
+        // ページ読み込み時のイベント
+        window.addEventListener('load', async () => {
+            try {
+                const res = await axios.get(API_URL);
+                res.data.forEach(member => createRow(member));
+            } catch (error) {
+                console.log(error);
+                alert('通信に失敗しました');
+            }
+        });
+        // 登録ボタン押下時のイベント
+        document.querySelector('#add button').addEventListener('click', async () => {
+            const member = {
+                name: document.querySelector('#add [name="name"]').value,
+                age: document.querySelector('#add [name="age"]').value,
+                address: document.querySelector('#add [name="address"]').value,
+                typeId: document.querySelector('#add [name="type"]').value
+            }
+            try {
+                const res = await axios.post(API_URL, member);
+                const newMember = res.data;
+                if (newMember) {
+                    console.log('以下の会員を追加');
+                    console.table(newMember);
+                    createRow(newMember);
+                } else {
+                    alert('会員登録に失敗しました');
+                }
+            } catch (error) {
+                console.log(error);
+                alert('通信に失敗しました');
+            }
+        });
+        //更新ボタン押下時のイベント
+        const updateMember = async (event) => {
+            const mid = '#mid' + event.target.getAttribute('data-id');
+            const member = {
+                id: event.target.getAttribute('data-id'),
+                name: document.querySelector(`${mid} [name="name"]`).value,
+                age: document.querySelector(`${mid} [name="age"]`).value,
+                address: document.querySelector(`${mid} [name="address"]`).value,
+                typeId: document.querySelector(`${mid} [name="type"]`).value
+            }
+            try {
+                const res = await axios.put(API_URL, member);
+                const modifiedMember = res.data;
+                if (modifiedMember) {
+                    console.log('以下のように会員を更新');
+                    console.table(modifiedMember);
+                } else {
+                    alert('更新に失敗しました');
+                }
+            } catch (error) {
+                console.log(error);
+                alert('通信に失敗しました');
+            }
+        }
+        //削除ボタン押下時のイベント
+        const deleteMember = async (event) => {
+            const isConfirmed = confirm('本当に削除しますか？');
+            if (!isConfirmed) return;
+            const id = event.target.getAttribute('data-id');
+            try {
+                const res = await axios.delete(`${API_URL}/${id}`);
+                const deletedMember = res.data;
+                if (deletedMember) {
+                    console.log('以下の会員を削除');
+                    console.table(deletedMember);
+                    document.getElementById(`mid${id}`).remove();
+                } else {
+                    alert('更新に失敗しました');
+                }
+            } catch (error) {
+                alert('通信に失敗しました');
+            }
+        }
+    </script>
+</body>
+
+</html>
