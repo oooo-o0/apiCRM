@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ja" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>住所検索</title>
+    <style>
+        .address {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>住所検索</h1>
+    <p>郵便番号を元に住所を検索します。</p>
+    <form action="" method="post">
+        <p>郵便番号：
+            <input type="text" name="zipcode" th:value="${param.zipcode}">
+            <input type="submit" value="検索">
+        </p>
+    </form>
+    <!-- 検索結果 -->
+    <th:block th:if="${info}" th:switch="${info.status}">
+        <th:block th:case="200">
+            <p class="address" th:each="result : ${info.results}">
+                <ruby>
+                    <rb th:text="${result.address1}"></rb>
+                    <rt th:text="${result.kana1}"></rt>
+                    <rb th:text="${result.address2}"></rb>
+                    <rt th:text="${result.kana2}"></rt>
+                    <rb th:text="${result.address3}"></rb>
+                    <rt th:text="${result.kana3}"></rt>
+                </ruby>
+            </p>
+        </th:block>
+        <p th:case="*">該当する住所は見つかりませんでした。</p>
+    </th:block>
+</body>
+
+</html>
